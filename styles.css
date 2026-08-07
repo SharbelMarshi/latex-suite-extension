@@ -1,0 +1,13 @@
+/* RTL math text */
+.mjx-rtl {
+	direction: rtl;
+}
+
+.mjx-rtl :where(:not(.mjx-rtl, mjx-mtext, mjx-c, mjx-utext)) {
+	direction: ltr;
+}
+
+/* Tolerant math rendering ($ ... $ with spaces / empty) */
+.lse-tolerant-math {
+	display: inline;
+}

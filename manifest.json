@@ -1,0 +1,8 @@
+{
+	"id": "latex-suite-extension",
+	"name": "Latex Suite Extension",
+	"version": "0.0.1",
+	"minAppVersion": "1.3.0",
+	"description": "Latex suite extension",
+	"isDesktopOnly": false
+}
