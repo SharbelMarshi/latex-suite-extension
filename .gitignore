@@ -1,1 +1,20 @@
+# this file itself
+.gitignore
+
+# macOS
+.DS_Store
+
+# npm
 node_modules/
+package-lock.json
+
+# build output (main.js is attached to releases, not committed)
+main.js
+*.map
+
+# Obsidian plugin runtime data (user settings)
+data.json
+
+# editors
+.vscode/
+.idea/
