@@ -11,3 +11,9 @@
 .lse-tolerant-math {
 	display: inline;
 }
+
+/* Hebrew/Arabic fonts for math text: the stack is provided per-settings via
+   the --lse-rtl-fonts variable, gated by a body class set by the plugin */
+body.lse-rtl-fonts mjx-container mjx-utext {
+	font-family: var(--lse-rtl-fonts) !important;
+}

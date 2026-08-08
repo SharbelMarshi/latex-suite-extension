@@ -5,7 +5,7 @@ import { Notice, Platform, Plugin } from 'obsidian';
 import { DEFAULT_SETTINGS, LatexSuiteExtensionSettingTab, LatexSuiteExtensionSettings } from './settings';
 import { createViewPlugin } from 'decoration-and-atomic-range';
 import { tolerantMathPostProcessor, tolerantMathViewPlugin } from 'tolerant-math';
-import { MathJaxBidiCommandPatcher, buildRtlFontCss } from 'rtl';
+import { MathJaxBidiCommandPatcher, buildRtlFontStack } from 'rtl';
 import { KeyboardSwitcher, findKeyboardContext } from 'keyboard-switch';
 import { createSolveListener } from 'solve';
 import { selectionSatisfies } from 'utils';
@@ -26,14 +26,12 @@ export default class LatexSuiteExtension extends Plugin {
 	 * command produces or not. See the comment in the makeTransactionFilter() method for details.
 	 */
 	_latexSuiteBoxing = false;
-	/** patches MathJax with the configured RTL/LTR commands */
+	/** patches MathJax with the configured RTL text commands */
 	private mathjaxPatcher?: MathJaxBidiCommandPatcher;
-	/** style element assigning the configured Hebrew/Arabic fonts to math text */
-	private fontStyleEl?: HTMLStyleElement;
 	/** switches the OS keyboard layout inside \he{...} / \ar{...} (desktop only) */
 	keyboardSwitcher?: KeyboardSwitcher;
 	/** original MathJax tex2chtml, kept for restoring the \displaystyle patch */
-	private origTex2chtml?: (source: string, options?: unknown) => unknown;
+	private origTex2chtml?: (source: string, options?: { display?: boolean }) => HTMLElement;
 
 	async onload() {
 
@@ -87,8 +85,8 @@ export default class LatexSuiteExtension extends Plugin {
 	onunload() {
 		this.mathjaxPatcher?.destroy();
 		this.mathjaxPatcher = undefined;
-		this.fontStyleEl?.remove();
-		this.fontStyleEl = undefined;
+		document.body.removeClass('lse-rtl-fonts');
+		document.body.style.removeProperty('--lse-rtl-fonts');
 		this.keyboardSwitcher?.destroy();
 		this.keyboardSwitcher = undefined;
 		if (this.origTex2chtml && window.MathJax) {
@@ -118,12 +116,18 @@ export default class LatexSuiteExtension extends Plugin {
 		};
 	}
 
+	/**
+	 * The font rule itself lives statically in styles.css; this only toggles
+	 * the body class gating it and fills in the font stack via a CSS variable.
+	 */
 	applyRtlFonts() {
-		this.fontStyleEl?.remove();
-		this.fontStyleEl = undefined;
-		const css = buildRtlFontCss(this.settings.hebrewFont, this.settings.arabicFont);
-		if (css) {
-			this.fontStyleEl = document.head.createEl('style', { text: css });
+		const stack = buildRtlFontStack(this.settings.hebrewFont, this.settings.arabicFont);
+		if (stack) {
+			document.body.addClass('lse-rtl-fonts');
+			document.body.style.setProperty('--lse-rtl-fonts', stack);
+		} else {
+			document.body.removeClass('lse-rtl-fonts');
+			document.body.style.removeProperty('--lse-rtl-fonts');
 		}
 	}
 

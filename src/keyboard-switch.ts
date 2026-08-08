@@ -4,6 +4,22 @@ import { Notice, Platform } from 'obsidian';
 import LatexSuiteExtension from './main';
 import { CANDIDATE_REGEX, shouldTolerantRender } from './tolerant-math';
 
+declare global {
+	interface Window {
+		/** Electron's require; absent on mobile */
+		require?: NodeRequire;
+	}
+}
+
+/** Node modules, loaded lazily so this file stays loadable on mobile. */
+function desktopNodeModules(): { fs: typeof import('fs'); childProcess: typeof import('child_process') } | null {
+	if (!Platform.isDesktopApp || !window.require) return null;
+	return {
+		fs: window.require('fs') as typeof import('fs'),
+		childProcess: window.require('child_process') as typeof import('child_process'),
+	};
+}
+
 export type RtlLanguage = 'he' | 'ar';
 
 /**
@@ -136,21 +152,26 @@ export class KeyboardSwitcher {
 	}
 
 	private resolveBinary(): string | null {
-		const fs = require('fs');
+		const node = desktopNodeModules();
+		if (!node) return null;
 		const configured = this.plugin.settings.imSelectPath.trim();
 		if (configured) {
-			return fs.existsSync(configured) ? configured : null;
+			return node.fs.existsSync(configured) ? configured : null;
 		}
 		for (const location of IM_SELECT_LOCATIONS) {
-			if (fs.existsSync(location)) return location;
+			if (node.fs.existsSync(location)) return location;
 		}
 		return null;
 	}
 
 	private exec(bin: string, args: string[]): Promise<string> {
 		return new Promise((resolve, reject) => {
-			const { execFile } = require('child_process');
-			execFile(bin, args, { timeout: 2000 }, (error: Error | null, stdout: string) => {
+			const node = desktopNodeModules();
+			if (!node) {
+				reject(new Error('Node.js modules are unavailable'));
+				return;
+			}
+			node.childProcess.execFile(bin, args, { timeout: 2000 }, (error, stdout) => {
 				if (error) reject(error);
 				else resolve(String(stdout).trim());
 			});

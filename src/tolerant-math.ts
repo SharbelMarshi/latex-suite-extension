@@ -225,7 +225,7 @@ export const tolerantMathPostProcessor: MarkdownPostProcessor = (element) => {
 		while ((match = CANDIDATE_REGEX.exec(text)) !== null) {
 			if (!shouldTolerantRender(match[1])) continue;
 
-			fragment ??= document.createDocumentFragment();
+			fragment ??= createFragment();
 			fragment.append(text.slice(last, match.index));
 			fragment.append(renderTolerantMath(match[1]));
 			last = match.index + match[0].length;

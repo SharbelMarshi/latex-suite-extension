@@ -2,7 +2,16 @@ import { finishRenderMath, loadMathJax } from 'obsidian';
 
 declare global {
 	interface Window {
-		MathJax: any;
+		MathJax: {
+			tex2chtml(source: string, options?: { display?: boolean }): HTMLElement;
+		};
+	}
+	// present at runtime (modern Chromium/WebKit), missing from TS 4.7's lib.dom
+	interface Document {
+		adoptedStyleSheets: CSSStyleSheet[];
+	}
+	interface CSSStyleSheet {
+		replaceSync(text: string): void;
 	}
 }
 
@@ -46,21 +55,20 @@ export function mergeSplitRtlText(root: ParentNode) {
 }
 
 /**
- * CSS assigning the configured fonts to Hebrew/Arabic text inside math.
+ * Font stack for Hebrew/Arabic text inside math, applied through the
+ * `--lse-rtl-fonts` CSS variable consumed by a static rule in styles.css.
  * MathJax renders characters missing from its own math fonts (e.g. Hebrew and
- * Arabic letters) as `mjx-utext` elements, so targeting those changes only
+ * Arabic letters) as `mjx-utext` elements, so that rule changes only
  * non-Latin text. Both fonts go into one stack: the browser picks the first
  * font that actually contains each glyph, so Hebrew letters use the Hebrew
  * font and Arabic letters fall through to the Arabic one.
  */
-export function buildRtlFontCss(hebrewFont: string, arabicFont: string): string {
-	const stack = [hebrewFont, arabicFont]
+export function buildRtlFontStack(hebrewFont: string, arabicFont: string): string {
+	return [hebrewFont, arabicFont]
 		.map(font => font.trim().replace(/["\\]/g, ''))
 		.filter(Boolean)
 		.map(font => `"${font}"`)
 		.join(', ');
-	if (!stack) return '';
-	return `mjx-container mjx-utext {\n\tfont-family: ${stack} !important;\n}`;
 }
 
 /**
@@ -75,7 +83,8 @@ export class MathJaxBidiCommandPatcher {
 	private cmds: string[];
 	private mathjaxStyleObserver?: MutationObserver;
 	private arabicShapingObserver?: MutationObserver;
-	private styleEl?: HTMLStyleElement;
+	/** constructed stylesheet holding the logical-property mirror rules */
+	private logicalSheet?: CSSStyleSheet;
 
 	constructor(cmds: string[]) {
 		this.cmds = cmds;
@@ -91,7 +100,7 @@ export class MathJaxBidiCommandPatcher {
 		this.arabicShapingObserver = new MutationObserver((mutations) => {
 			for (const mutation of mutations) {
 				for (const node of Array.from(mutation.addedNodes)) {
-					if (!(node instanceof HTMLElement)) continue;
+					if (!node.instanceOf(HTMLElement)) continue;
 					if (node.tagName.startsWith('MJX')) {
 						mergeSplitRtlText(node.parentElement ?? node);
 					} else if (node.querySelector('mjx-utext')) {
@@ -130,16 +139,26 @@ export class MathJaxBidiCommandPatcher {
 		this.mathjaxStyleObserver = undefined;
 		this.arabicShapingObserver?.disconnect();
 		this.arabicShapingObserver = undefined;
-		this.styleEl?.remove();
-		this.styleEl = undefined;
+		if (this.logicalSheet) {
+			document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+				sheet => sheet !== this.logicalSheet
+			);
+			this.logicalSheet = undefined;
+		}
 	}
 
+	/**
+	 * The mirrored rules depend on MathJax's generated stylesheet, so they
+	 * can't live in styles.css; a constructed stylesheet (no <style> element)
+	 * carries them instead.
+	 */
 	private patchStyles() {
 		const rules = this.convertMathJaxStylesToLogicalProperties();
-		this.styleEl?.remove();
-		this.styleEl = document.head.createEl('style', {
-			text: rules.join('\n')
-		});
+		if (!this.logicalSheet) {
+			this.logicalSheet = new CSSStyleSheet();
+			document.adoptedStyleSheets = [...document.adoptedStyleSheets, this.logicalSheet];
+		}
+		this.logicalSheet.replaceSync(rules.join('\n'));
 	}
 
 	private getMathJaxStyleElement() {
