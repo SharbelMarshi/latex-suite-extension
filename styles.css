@@ -1,3 +1,5 @@
+/* stylelint-disable selector-type-no-unknown -- mjx-* are MathJax's custom elements */
+
 /* RTL math text */
 .mjx-rtl {
 	direction: rtl;
@@ -13,7 +15,10 @@
 }
 
 /* Hebrew/Arabic fonts for math text: the stack is provided per-settings via
-   the --lse-rtl-fonts variable, gated by a body class set by the plugin */
+   the --lse-rtl-fonts variable, gated by a body class set by the plugin.
+   !important is required because MathJax sets font-family as an inline style
+   on mjx-utext elements, which no selector specificity can override. */
 body.lse-rtl-fonts mjx-container mjx-utext {
+	/* stylelint-disable-next-line declaration-no-important */
 	font-family: var(--lse-rtl-fonts) !important;
 }

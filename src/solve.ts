@@ -31,15 +31,24 @@ function trySolve(plugin: LatexSuiteExtension, view: EditorView) {
 	if (pos < SOLVE.length || state.sliceDoc(pos - SOLVE.length, pos) !== SOLVE) return;
 	if (!isInsideMath(state)) return;
 
-	const line = state.doc.lineAt(pos);
-	let content = state.sliceDoc(line.from, pos - SOLVE.length);
-	// inline math: only look at the current $...$; display math lines have no "$"
+	// Take everything since the nearest "$" before the cursor — for inline
+	// math that is the opening delimiter, for display math the end of "$$".
+	// Newlines become spaces so equations spread over several lines work.
+	const windowStart = Math.max(0, pos - SOLVE.length - 4000);
+	let content = state.sliceDoc(windowStart, pos - SOLVE.length);
 	const dollarIndex = content.lastIndexOf('$');
 	if (dollarIndex >= 0) content = content.slice(dollarIndex + 1);
-	// the flicker machinery's hidden opening braces
-	content = content.replace(/^\{\} ?/, '');
+	content = content
+		.replace(/[\r\n]+/g, ' ')
+		// the flicker machinery's hidden opening braces
+		.replace(/^\s*\{\} ?/, '');
 
-	const insert = computeSolveInsertion(content, plugin.settings.solveSeparator);
+	const insert = computeSolveInsertion(
+		content,
+		plugin.settings.solveSeparator,
+		plugin.settings.solveAngleUnit,
+		plugin.settings.solveAngleNames,
+	);
 	if (insert === null) {
 		new Notice('Latex Suite Extension: could not evaluate the last equation.');
 		return;

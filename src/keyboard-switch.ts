@@ -7,7 +7,10 @@ import { CANDIDATE_REGEX, shouldTolerantRender } from './tolerant-math';
 declare global {
 	interface Window {
 		/** Electron's require; absent on mobile */
-		require?: NodeRequire;
+		require?: {
+			(id: 'fs'): typeof import('fs');
+			(id: 'child_process'): typeof import('child_process');
+		};
 	}
 }
 
@@ -15,8 +18,8 @@ declare global {
 function desktopNodeModules(): { fs: typeof import('fs'); childProcess: typeof import('child_process') } | null {
 	if (!Platform.isDesktopApp || !window.require) return null;
 	return {
-		fs: window.require('fs') as typeof import('fs'),
-		childProcess: window.require('child_process') as typeof import('child_process'),
+		fs: window.require('fs'),
+		childProcess: window.require('child_process'),
 	};
 }
 

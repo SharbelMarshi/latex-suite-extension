@@ -99,12 +99,25 @@ k_1=\frac{\omega}{v_1} =\frac{200}{40}\solve
 Rules:
 
 - Only the expression after the **last top-level `=`** is evaluated, and the left-hand side before the **first `=`** of that step is repeated in the result. Derivation steps separated by `\quad`, `\xrightarrow{...}`, `\Rightarrow`, commas, etc. are respected - only the last step counts, so multi-step lines are safe.
-- Supported math: numbers, `+ - \cdot \times /`, `\frac`, `^`, `\sqrt` (incl. `\sqrt[n]`), parentheses, `\pi`, `e`, and `\sin \cos \tan \arcsin \arccos \arctan \sinh \cosh \tanh \ln \log \exp` (radians).
+- Supported math: numbers, `+ - \cdot \times /`, `\frac`/`\cfrac`/`\dfrac`, `^`, `\sqrt` (incl. `\sqrt[n]`), parentheses, `\pi`, `e`, and `\sin \cos \tan \arcsin \arccos \arctan \sinh \cosh \tanh \ln \log \exp` (radians). Inverse notation works: `\sin^{-1}(x)` is arcsin, and `\sin^{2}(x)` means `(sin x)^2`. Degrees are understood via `49.2^\circ` (converted to radians). Unicode `× − · ÷ π` from pasted text are understood too.
+- Angle results are shown in degrees (`41.1395^\circ`) when **both** hold: the expression is an inverse trig call like `\sin^{-1}\left(\frac{1}{1.52}\right)`, **and** the left-hand side is an angle-named variable — `\theta_{c}=\sin^{-1}(...)` gets degrees, `r_{c}=\sin^{-1}(...)` stays a plain number. The angle names (`theta, vartheta, phi, varphi, alpha, beta, gamma, delta, psi` by default) and the degrees/radians choice are both configurable under Settings → Solve. With no left-hand side at all, inverse trig alone decides. `\approx`/`\simeq` count as `=` when splitting the equation, so re-solving a line that already ends with `\approx 41.14^\circ` works.
+- Equations spread over several lines inside display math are handled — the whole `$$...$$` block up to `\solve` is read, not just the current line.
 - A trailing `\mathrm{...}` or `\text{...}` on the last expression is treated as a unit and carried over: `=\frac{200}{40}\ \mathrm{rad/m}\solve` gives `k_1=5\ \mathrm{rad/m}`. Otherwise the cursor lands right after the result, ready for typing units.
 - Results use up to 6 significant digits; large/small values become `m\cdot 10^{n}`.
 - If the expression still contains unknown symbols, a notice appears and nothing changes. Undo restores the `\solve` text without re-triggering.
 - The `\quad \to \quad` separator between equation and result is configurable in the settings.
 - Tip: the built-in snippet `sol` types `\solve` for you, so solving is three keystrokes.
+
+`\solve` also solves **quadratic and linear equations** in one unknown. If the expression contains a single unknown symbol (a letter like `x` or a Greek command like `\theta`), it is treated as an equation — `= 0` implicitly when no equals sign is present — and both solutions are produced by the quadratic formula:
+
+```latex
+x^2+2x+1\solve      →  x^2+2x+1 \quad \to \quad x_{1,2}=-1
+x^2-5x+6=0\solve    →  ... \quad \to \quad x_1=3,\ x_2=2
+x^2+2x+2\solve      →  ... \quad \to \quad x_{1,2}=-1\pm i
+2x+4=0\solve        →  ... \quad \to \quad x=-2
+```
+
+A negative discriminant yields the complex pair in `p\pm qi` form. Coefficients can be any evaluable math (`\frac{1}{2}x^2-2=0` works). Cubics and equations with two unknowns are refused with a notice.
 
 ## Latex Suite compatibility
 

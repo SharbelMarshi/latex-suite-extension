@@ -1,8 +1,8 @@
 {
 	"id": "latex-suite-extension",
 	"name": "Latex Suite Extension",
-	"version": "0.0.2",
-	"minAppVersion": "1.3.0",
+	"version": "0.0.3",
+	"minAppVersion": "1.13.0",
 	"description": "Flicker-free and tolerant inline math, RTL math text with Hebrew and Arabic support, automatic keyboard switching, display style, and equation solving for Latex Suite users.",
 	"author": "Sharbel Marshi",
 	"authorUrl": "https://github.com/SharbelMarshi",

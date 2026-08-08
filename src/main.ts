@@ -104,8 +104,9 @@ export default class LatexSuiteExtension extends Plugin {
 	private patchInlineDisplaystyle() {
 		const mathJax = window.MathJax;
 		if (!mathJax?.tex2chtml || this.origTex2chtml) return;
+		// binding keeps `this` correct both in the wrapper and when restoring
 		const original = mathJax.tex2chtml.bind(mathJax);
-		this.origTex2chtml = mathJax.tex2chtml;
+		this.origTex2chtml = original;
 		mathJax.tex2chtml = (source: string, options?: { display?: boolean }) => {
 			if (this.settings.inlineDisplaystyle
 				&& options?.display === false
@@ -132,11 +133,15 @@ export default class LatexSuiteExtension extends Plugin {
 	}
 
 	async loadSettings() {
-		const data = await this.loadData();
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
-		this.settings.rtlTextCommands = Array.isArray(data?.rtlTextCommands)
-			? data.rtlTextCommands
+		const data: unknown = await this.loadData();
+		const stored = (data ?? {}) as Partial<LatexSuiteExtensionSettings>;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, stored);
+		this.settings.rtlTextCommands = Array.isArray(stored.rtlTextCommands)
+			? stored.rtlTextCommands
 			: [...DEFAULT_SETTINGS.rtlTextCommands];
+		this.settings.solveAngleNames = Array.isArray(stored.solveAngleNames)
+			? stored.solveAngleNames
+			: [...DEFAULT_SETTINGS.solveAngleNames];
 		// migrate the pre-0.0.2 solve separator default
 		if (this.settings.solveSeparator === "\\quad \\xrightarrow{} \\quad") {
 			this.settings.solveSeparator = DEFAULT_SETTINGS.solveSeparator;
