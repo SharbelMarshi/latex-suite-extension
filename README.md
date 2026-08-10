@@ -2,13 +2,13 @@
 
 An [Obsidian.md](https://obsidian.md/) plugin that extends [Latex Suite](https://github.com/artisticat1/obsidian-latex-suite) with seven features in one plugin:
 
-1. **Flicker-free inline math**: no more flickering while typing inside `$...$`.
-2. **Tolerant math rendering**: `$ x + y $` (spaces inside the dollar signs) and `$ $` (empty math) render as math anyway, in both Live Preview and Reading view, even though Obsidian normally refuses to render them — and editing them gets full Latex Suite support.
-3. **RTL math text**: mix right-to-left text (e.g. Hebrew) into MathJax expressions with a single short command: `\he{שלום}`. Command names are configurable in the settings.
-4. **Automatic keyboard switching**: the system keyboard follows the cursor: your note language outside math, English inside `$...$`, and Hebrew/Arabic inside `\he{...}` / `\ar{...}`.
-5. **Display style everywhere**: inline `$...$` math renders in `\displaystyle` (full-size fractions, sums, integrals) without writing it (Toggle it on/off in settings)
-6. **Solve**: type `\solve` after an equation chain like `k_1=\frac{\omega}{v_1}=\frac{200}{40}` and the last expression is evaluated and appended: `k_1=5`.
-7. **Built-in snippets**: in math, `he` → `\he{|}`, `ar` → `\ar{|}`, `sol` → `\solve`, with no Latex Suite configuration needed.
+1. **Flicker-free inline math**: no more flickering while typing inside $...$.
+2. **Tolerant math rendering**: $ x + y $ (spaces inside the dollar signs) and $ $ (empty math) render as math anyway, in both Live Preview and Reading view.
+3. **RTL math text**: mix right-to-left text into MathJax expressions with a single short command: \he{שלום}. Command names are configurable in the settings.
+4. **Automatic keyboard switching**: the system keyboard follows the cursor: your note language outside math, English inside $...$, and Hebrew/Arabic inside \he{...} / \ar{...}.
+5. **Inline math displaystyle**: inline $...$ math renders in \displaystyle (full-size fractions, sums, integrals) without writing it (Toggle it on/off in settings)
+6. **Solve**: type `\solve` after an equation chain and the last expression is evaluated and appended.
+7. **Built-in snippets**: in math, he → \he{|}, ar → \ar{|}, sol → \solve, with no Latex Suite configuration needed.
 
 ## How it works
 
@@ -59,6 +59,8 @@ The plugin ships its own math-mode snippets - no Latex Suite configuration neede
 
 The RTL triggers follow the configured command names. They never fire after a letter or backslash (`\theta`, `\varphi`, `\arcsin` are safe), outside math, inside `\text{...}`-style commands, or inside an RTL command's argument. Toggle them off under "Math rendering > Built-in snippets" — for example if you prefer managing the equivalents in Latex Suite's own snippet list (having both is safe: Latex Suite expands first and the built-in trigger then never sees the text).
 
+The plugin also **auto-closes `$`**: typing `$` inserts `$|$` with the cursor in the middle; a second `$` upgrades the empty pair to display math `$$|$$`; typing `$` right before a closing `$` steps over it instead of doubling it; and typing `$` with text selected wraps the selection in `$...$`. Escaped `\$` and `$` inside code/comments are left alone. Toggle under "Math rendering > Auto-close $".
+
 #### Automatic keyboard switching (desktop only)
 
 The plugin keeps the system keyboard matched to where the cursor is, in three layers (innermost wins):
@@ -106,6 +108,7 @@ Rules:
 - Results use up to 6 significant digits; large/small values become `m\cdot 10^{n}`.
 - If the expression still contains unknown symbols, a notice appears and nothing changes. Undo restores the `\solve` text without re-triggering.
 - The `\quad \to \quad` separator between equation and result is configurable in the settings.
+- Text labels before the equation are understood: in `A \he{עבור מתכת}: \lambda = \frac{1240}{2}`, the `:` separates the label from the equation, and leading `\he{...}`/`\text{...}`-style chunks before the variable are ignored even without a colon.
 - Tip: the built-in snippet `sol` types `\solve` for you, so solving is three keystrokes.
 
 `\solve` also solves **quadratic and linear equations** in one unknown. If the expression contains a single unknown symbol (a letter like `x` or a Greek command like `\theta`), it is treated as an equation — `= 0` implicitly when no equals sign is present — and both solutions are produced by the quadratic formula:

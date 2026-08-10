@@ -8,6 +8,7 @@ export interface LatexSuiteExtensionSettings {
     disableInTable: boolean;
     disableOnIME: boolean;
     inlineDisplaystyle: boolean;
+    autoPairDollar: boolean;
     solveSeparator: string;
     solveAngleUnit: 'degrees' | 'radians';
     solveAngleNames: string[];
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: LatexSuiteExtensionSettings = {
     disableInTable: false,
     disableOnIME: true,
     inlineDisplaystyle: true,
+    autoPairDollar: true,
     solveSeparator: "\\quad \\to \\quad",
     solveAngleUnit: 'degrees',
     solveAngleNames: DEFAULT_ANGLE_NAMES,
@@ -90,6 +92,17 @@ export class LatexSuiteExtensionSettingTab extends PluginSettingTab {
                             el.createSpan({ text: "\" — full-size fractions, sums and integrals inside $...$. Re-open notes to re-render already displayed math." });
                         }),
                         control: { type: 'toggle', key: 'inlineDisplaystyle' },
+                    },
+                    {
+                        name: 'Auto-close $',
+                        desc: createFragment((el) => {
+                            el.createSpan({ text: "Typing \"" });
+                            el.createEl("code", { text: "$" });
+                            el.createSpan({ text: "\" inserts \"" });
+                            el.createEl("code", { text: "$|$" });
+                            el.createSpan({ text: "\" with the cursor in the middle. Typing \"$\" before a closing \"$\" steps over it, and typing \"$\" with a selection wraps it in $...$." });
+                        }),
+                        control: { type: 'toggle', key: 'autoPairDollar' },
                     },
                     {
                         name: 'Built-in snippets',

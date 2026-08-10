@@ -594,7 +594,8 @@ function splitTopLevelSegments(content: string): string[] {
 		}
 		if (c === '{' || c === '(' || c === '[') depth++;
 		else if (c === '}' || c === ')' || c === ']') depth = Math.max(0, depth - 1);
-		else if (depth === 0 && (c === ',' || c === ';')) {
+		else if (depth === 0 && (c === ',' || c === ';' || c === ':')) {
+			// ":" separates a label from its equation ("\he{עבור מתכת}: \lambda=...")
 			segments.push(content.slice(start, i));
 			start = i + 1;
 		}
@@ -602,6 +603,34 @@ function splitTopLevelSegments(content: string): string[] {
 	}
 	segments.push(content.slice(start));
 	return segments;
+}
+
+const LABEL_COMMAND = /^\\(?:he|ar|text|textrm|textbf|textit|mathrm|mbox)\s*(?=\{)/;
+const LABEL_SPACING = /^(?:\\[,;:!]|\\ |\\quad\b|\\qquad\b|:)\s*/;
+
+/**
+ * Remove leading text labels and spacing from a left-hand side, so
+ * "\he{עבור מתכת} \lambda" resolves to the actual variable "\lambda".
+ */
+function stripLeadingLabels(text: string): string {
+	let s = text.trim();
+	for (;;) {
+		const cmd = s.match(LABEL_COMMAND);
+		if (cmd) {
+			const afterGroup = skipGroups(s, cmd[0].length);
+			if (afterGroup > cmd[0].length) {
+				s = s.slice(afterGroup).trim();
+				continue;
+			}
+		}
+		const spacing = s.match(LABEL_SPACING);
+		if (spacing && spacing[0].length > 0) {
+			s = s.slice(spacing[0].length).trim();
+			continue;
+		}
+		break;
+	}
+	return s;
 }
 
 /**
@@ -672,7 +701,7 @@ export function computeSolveInsertion(
 		const equals = findTopLevelEquals(segments[i]);
 		if (equals.length > 0) {
 			const last = equals[equals.length - 1];
-			lhs = segments[i].slice(0, equals[0].index).trim();
+			lhs = stripLeadingLabels(segments[i].slice(0, equals[0].index));
 			rhs = segments[i].slice(last.index + last.length).trim();
 			break;
 		}

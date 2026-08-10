@@ -1,5 +1,6 @@
 import { Transaction, TransactionSpec } from '@codemirror/state';
 import { EditorState } from '@codemirror/state';
+import { syntaxTree } from '@codemirror/language';
 
 import LatexSuiteExtension from './main';
 import { isInsideMath } from './keyboard-switch';
@@ -60,6 +61,77 @@ function enclosingCommandName(state: EditorState, pos: number): string | null {
 		if (depth > 0) found = match[1];    // still open at pos => encloses it
 	}
 	return found;
+}
+
+// contexts where a "$" is literal text, never a math delimiter
+const CODE_CONTEXT = /code|comment|frontmatter|escape|tag|hashtag/i;
+
+/**
+ * Auto-pairing for "$":
+ * - typing "$" inserts "$|$" with the cursor in the middle
+ * - typing "$" right before an existing closing "$" (including the hidden
+ *   " {}$" form) steps over it instead of inserting another one
+ * - typing "$" with a selection wraps the selection: "$selection$|"
+ * Skipped for escaped "\$" and inside code/comments/frontmatter.
+ */
+export function getDollarAutopair(tr: Transaction): TransactionSpec | null {
+	const state = tr.startState;
+	if (state.selection.ranges.length !== 1) return null;
+
+	// Exactly one change: Obsidian's own selection auto-pair wraps by
+	// dispatching TWO "$" insertions, and that transaction must pass through
+	// untouched — treating one of its halves as a type-through would swallow
+	// the wrap.
+	let single: { fromA: number; toA: number; inserted: string } | null = null;
+	let changeCount = 0;
+	tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+		changeCount++;
+		single = { fromA, toA, inserted: inserted.toString() };
+	});
+	if (changeCount !== 1 || single === null) return null;
+	const { fromA, toA, inserted } = single as { fromA: number; toA: number; inserted: string };
+	if (inserted !== '$') return null;
+
+	if (state.sliceDoc(Math.max(0, fromA - 1), fromA) === '\\') return null;
+	if (CODE_CONTEXT.test(syntaxTree(state).cursorAt(fromA, 1).node.name)) return null;
+
+	// selection wrap (only reached when Obsidian's own auto-pair is off,
+	// in which case the "$" would otherwise REPLACE the selection)
+	if (toA > fromA) {
+		const text = state.sliceDoc(fromA, toA);
+		return {
+			changes: { from: fromA, to: toA, insert: `$${text}$` },
+			selection: { anchor: fromA + text.length + 2 },
+		};
+	}
+
+	// a second "$" inside the fresh empty pair upgrades it to display math: $$|$$
+	if (state.sliceDoc(Math.max(0, fromA - 1), fromA) === '$'
+		&& state.sliceDoc(fromA, fromA + 1) === '$'
+		&& state.sliceDoc(Math.max(0, fromA - 2), Math.max(0, fromA - 1)) !== '$'
+		&& state.sliceDoc(fromA + 1, fromA + 2) !== '$') {
+		return {
+			changes: { from: fromA, insert: '$$' },
+			selection: { anchor: fromA + 1 },
+		};
+	}
+
+	// type-through an existing closing "$"
+	if (state.sliceDoc(fromA, fromA + 1) === '$') {
+		return { selection: { anchor: fromA + 1 } };
+	}
+	if (state.sliceDoc(fromA, fromA + 4) === ' {}$' && isInsideMath(state, fromA)) {
+		return { selection: { anchor: fromA + 4 } };
+	}
+
+	// auto-close a fresh "$"
+	if (!isInsideMath(state, fromA)) {
+		return {
+			changes: { from: fromA, insert: '$$' },
+			selection: { anchor: fromA + 1 },
+		};
+	}
+	return null;
 }
 
 /**

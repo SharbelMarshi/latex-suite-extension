@@ -2,7 +2,7 @@ import { ChangeSpec, EditorState, EditorSelection, ChangeSet, Transaction, Exten
 import { syntaxTree } from '@codemirror/language';
 import { isInlineMathBegin, isInlineMathEnd } from './utils';
 import { getTolerantConversionChanges } from './tolerant-math';
-import { getSnippetExpansion } from './snippets';
+import { getDollarAutopair, getSnippetExpansion } from './snippets';
 import LatexSuiteExtension from 'main';
 import { handleLatexSuite } from 'latex-suite';
 import { editorEditorField } from 'obsidian';
@@ -41,6 +41,11 @@ export const makeTransactionFilter = (plugin: LatexSuiteExtension): Extension =>
                 // CJK characters
                 const view = tr.startState.field(editorEditorField);
                 if (view.composing) return tr;
+            }
+
+            if (plugin.settings.autoPairDollar) {
+                const pairSpec = getDollarAutopair(tr);
+                if (pairSpec) return pairSpec;
             }
 
             if (plugin.settings.builtinSnippets) {
