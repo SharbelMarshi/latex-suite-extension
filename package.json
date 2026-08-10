@@ -1,6 +1,6 @@
 {
 	"name": "latex-suite-extension",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "An Obsidian.md plugin extending Latex Suite: flicker-free inline math, tolerant $ $ rendering, and RTL math text.",
 	"main": "main.js",
 	"scripts": {
