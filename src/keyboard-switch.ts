@@ -109,6 +109,22 @@ export function isInsideMath(state: EditorState, pos = state.selection.main.head
 		const end = start + match[0].length;
 		if (pos > start && pos < end && shouldTolerantRender(match[1])) return true;
 	}
+
+	// A blank line inside a multi-line $$...$$ block carries no math token and
+	// no inline `$...$`, so the checks above miss it: pressing Enter in the block
+	// would wrongly fall back to note text until the first character is typed.
+	// Decide such lines by the parity of unescaped `$$` delimiters before the
+	// line — an odd count means the cursor sits inside an open display block.
+	if (line.text.trim().length === 0) {
+		const before = state.sliceDoc(0, line.from);
+		let delimiters = 0;
+		for (let i = 0; i < before.length; i++) {
+			if (before[i] === '\\') { i++; continue; } // skip the escaped character
+			if (before[i] === '$' && before[i + 1] === '$') { delimiters++; i++; }
+		}
+		if (delimiters % 2 === 1) return true;
+	}
+
 	return false;
 }
 
