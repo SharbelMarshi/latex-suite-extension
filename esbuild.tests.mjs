@@ -37,6 +37,9 @@ await esbuild.build({
 	format: "esm",
 	target: "es2022",
 	sourcemap: "inline",
+	// src uses window.setTimeout (popout-window safe in Obsidian); Node has no
+	// window, so alias it to the global object for the tests
+	banner: { js: "globalThis.window ??= globalThis;" },
 	logLevel: "info",
 	external: ["node:*"],
 });

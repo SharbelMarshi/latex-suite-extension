@@ -63,7 +63,7 @@ export function parseDocuments(raw: unknown): DocumentMap {
 
 export class DocumentStore {
 	private documents: DocumentMap = {};
-	private saveTimeout: ReturnType<typeof setTimeout> | null = null;
+	private saveTimeout: number | null = null;
 
 	/** @param persist writes the whole plugin data file (settings + documents) */
 	constructor(private readonly persist: () => Promise<void> | void) { }
@@ -138,8 +138,8 @@ export class DocumentStore {
 	/* ---- persistence ---- */
 
 	scheduleSave(): void {
-		if (this.saveTimeout !== null) clearTimeout(this.saveTimeout);
-		this.saveTimeout = setTimeout(() => {
+		if (this.saveTimeout !== null) window.clearTimeout(this.saveTimeout);
+		this.saveTimeout = window.setTimeout(() => {
 			this.saveTimeout = null;
 			void this.persist();
 		}, SAVE_DEBOUNCE_MS);
@@ -148,7 +148,7 @@ export class DocumentStore {
 	/** Write immediately (used on unload and by tests). */
 	async flush(): Promise<void> {
 		if (this.saveTimeout !== null) {
-			clearTimeout(this.saveTimeout);
+			window.clearTimeout(this.saveTimeout);
 			this.saveTimeout = null;
 		}
 		await this.persist();
@@ -156,7 +156,7 @@ export class DocumentStore {
 
 	destroy(): void {
 		if (this.saveTimeout !== null) {
-			clearTimeout(this.saveTimeout);
+			window.clearTimeout(this.saveTimeout);
 			this.saveTimeout = null;
 		}
 	}

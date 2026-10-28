@@ -79,8 +79,7 @@ export class MeaningTooltip {
 	private position(target: HTMLElement, el: HTMLElement): void {
 		el.removeClass('lse-meaning-tooltip-below');
 		// measure with the tooltip laid out but before it is placed
-		el.style.left = '0px';
-		el.style.top = '0px';
+		el.setCssStyles({ left: '0px', top: '0px' });
 
 		const rect = target.getBoundingClientRect();
 		const size = el.getBoundingClientRect();
@@ -97,8 +96,7 @@ export class MeaningTooltip {
 			Math.max(VIEWPORT_MARGIN, maxLeft),
 		);
 
-		el.style.left = `${Math.round(left)}px`;
-		el.style.top = `${Math.round(top)}px`;
+		el.setCssStyles({ left: `${Math.round(left)}px`, top: `${Math.round(top)}px` });
 	}
 
 	hide(): void {

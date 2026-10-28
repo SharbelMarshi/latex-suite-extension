@@ -51,7 +51,7 @@ function emptySpec(): FormFieldSpec {
 
 /** Collapse whitespace and drop control characters from a user-supplied string. */
 export function sanitizeText(value: string): string {
-	// eslint-disable-next-line no-control-regex
+	// eslint-disable-next-line no-control-regex -- matching control characters is the point: they are stripped from user input
 	return value.replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim();
 }
 

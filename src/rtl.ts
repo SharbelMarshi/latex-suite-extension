@@ -54,12 +54,29 @@ export function mergeSplitRtlText(root: ParentNode) {
 	}
 }
 
+export const RTL_FONTS_VAR = '--lse-rtl-fonts';
+
+/**
+ * MathJax renders characters missing from its own math fonts (e.g. Hebrew and
+ * Arabic letters) as `mjx-utext` elements and sets their font-family as an
+ * inline style, which no stylesheet rule can override without !important.
+ * Instead, prefix that inline value with the `--lse-rtl-fonts` variable:
+ * `var(--lse-rtl-fonts,) MJX-TEX-ZERO, serif`. The plugin sets the variable on
+ * the body to the font stack plus a trailing comma; while it is unset, the
+ * empty fallback leaves MathJax's own fonts in place.
+ */
+export function applyRtlFontVariable(root: ParentNode) {
+	for (const el of Array.from(root.querySelectorAll<HTMLElement>('mjx-utext'))) {
+		const family = el.style.fontFamily;
+		if (!family || family.includes(RTL_FONTS_VAR)) continue;
+		el.setCssStyles({ fontFamily: `var(${RTL_FONTS_VAR},) ${family}` });
+	}
+}
+
 /**
  * Font stack for Hebrew/Arabic text inside math, applied through the
- * `--lse-rtl-fonts` CSS variable consumed by a static rule in styles.css.
- * MathJax renders characters missing from its own math fonts (e.g. Hebrew and
- * Arabic letters) as `mjx-utext` elements, so that rule changes only
- * non-Latin text. Both fonts go into one stack: the browser picks the first
+ * `--lse-rtl-fonts` CSS variable (see applyRtlFontVariable), so it changes
+ * only non-Latin text. Both fonts go into one stack: the browser picks the first
  * font that actually contains each glyph, so Hebrew letters use the Hebrew
  * font and Arabic letters fall through to the Arabic one.
  */
@@ -93,18 +110,23 @@ export class MathJaxBidiCommandPatcher {
 	async init() {
 		await loadMathJax();
 
-		// Fix Arabic letter joining in already-rendered math, and keep fixing
-		// every piece of math rendered from now on (reading view, live preview
-		// widgets, hover previews, ...)
-		mergeSplitRtlText(document.body);
+		// Fix Arabic letter joining and apply the RTL font stack in
+		// already-rendered math, and keep doing so for every piece of math
+		// rendered from now on (reading view, live preview widgets, hover
+		// previews, ...)
+		const fixRtlText = (root: ParentNode) => {
+			mergeSplitRtlText(root);
+			applyRtlFontVariable(root);
+		};
+		fixRtlText(document.body);
 		this.arabicShapingObserver = new MutationObserver((mutations) => {
 			for (const mutation of mutations) {
 				for (const node of Array.from(mutation.addedNodes)) {
 					if (!node.instanceOf(HTMLElement)) continue;
 					if (node.tagName.startsWith('MJX')) {
-						mergeSplitRtlText(node.parentElement ?? node);
+						fixRtlText(node.parentElement ?? node);
 					} else if (node.querySelector('mjx-utext')) {
-						mergeSplitRtlText(node);
+						fixRtlText(node);
 					}
 				}
 			}
@@ -150,10 +172,16 @@ export class MathJaxBidiCommandPatcher {
 	/**
 	 * The mirrored rules depend on MathJax's generated stylesheet, so they
 	 * can't live in styles.css; a constructed stylesheet (no <style> element)
-	 * carries them instead.
+	 * carries them instead, together with the rule below that selects
+	 * MathJax's custom elements.
 	 */
 	private patchStyles() {
-		const rules = this.convertMathJaxStylesToLogicalProperties();
+		const rules = [
+			// inside an RTL run, everything but the text itself goes back to
+			// LTR, so math nested via \(...\) keeps its own layout
+			'.mjx-rtl :where(:not(.mjx-rtl, mjx-mtext, mjx-c, mjx-utext)) { direction: ltr; }',
+			...this.convertMathJaxStylesToLogicalProperties(),
+		];
 		if (!this.logicalSheet) {
 			this.logicalSheet = new CSSStyleSheet();
 			document.adoptedStyleSheets = [...document.adoptedStyleSheets, this.logicalSheet];

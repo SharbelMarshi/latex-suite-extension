@@ -5,7 +5,7 @@ import { Editor, MarkdownView, Notice, Platform, Plugin, TAbstractFile, TFile } 
 import { DEFAULT_SETTINGS, LatexSuiteExtensionSettingTab, LatexSuiteExtensionSettings } from './settings';
 import { createViewPlugin } from 'decoration-and-atomic-range';
 import { tolerantMathPostProcessor, tolerantMathViewPlugin } from 'tolerant-math';
-import { MathJaxBidiCommandPatcher, buildRtlFontStack } from 'rtl';
+import { MathJaxBidiCommandPatcher, RTL_FONTS_VAR, buildRtlFontStack } from 'rtl';
 import { KeyboardSwitcher, findKeyboardContext } from 'keyboard-switch';
 import { createSolveListener } from 'solve';
 import { selectionSatisfies } from 'utils';
@@ -134,8 +134,7 @@ export default class LatexSuiteExtension extends Plugin {
 		this.meaningTooltip?.destroy();
 		this.meaningTooltip = undefined;
 		this.store?.destroy();
-		document.body.removeClass('lse-rtl-fonts');
-		document.body.style.removeProperty('--lse-rtl-fonts');
+		document.body.style.removeProperty(RTL_FONTS_VAR);
 		this.keyboardSwitcher?.destroy();
 		this.keyboardSwitcher = undefined;
 		if (this.origTex2chtml && window.MathJax) {
@@ -167,17 +166,17 @@ export default class LatexSuiteExtension extends Plugin {
 	}
 
 	/**
-	 * The font rule itself lives statically in styles.css; this only toggles
-	 * the body class gating it and fills in the font stack via a CSS variable.
+	 * Math text elements read the font stack from this CSS variable (see
+	 * applyRtlFontVariable in rtl.ts). The trailing comma joins it onto
+	 * MathJax's own font list; with no fonts configured the variable is
+	 * removed and MathJax's fonts are used as-is.
 	 */
 	applyRtlFonts() {
 		const stack = buildRtlFontStack(this.settings.hebrewFont, this.settings.arabicFont);
 		if (stack) {
-			document.body.addClass('lse-rtl-fonts');
-			document.body.style.setProperty('--lse-rtl-fonts', stack);
+			document.body.setCssProps({ [RTL_FONTS_VAR]: `${stack},` });
 		} else {
-			document.body.removeClass('lse-rtl-fonts');
-			document.body.style.removeProperty('--lse-rtl-fonts');
+			document.body.style.removeProperty(RTL_FONTS_VAR);
 		}
 	}
 

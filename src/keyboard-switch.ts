@@ -4,18 +4,33 @@ import { Notice, Platform } from 'obsidian';
 import LatexSuiteExtension from './main';
 import { CANDIDATE_REGEX, shouldTolerantRender } from './tolerant-math';
 
+/** The parts of Node's `fs` this file uses. */
+interface NodeFs {
+	existsSync(path: string): boolean;
+}
+
+/** The parts of Node's `child_process` this file uses. */
+interface NodeChildProcess {
+	execFile(
+		file: string,
+		args: string[],
+		options: { timeout: number },
+		callback: (error: Error | null, stdout: string) => void,
+	): unknown;
+}
+
 declare global {
 	interface Window {
 		/** Electron's require; absent on mobile */
 		require?: {
-			(id: 'fs'): typeof import('fs');
-			(id: 'child_process'): typeof import('child_process');
+			(id: 'fs'): NodeFs;
+			(id: 'child_process'): NodeChildProcess;
 		};
 	}
 }
 
 /** Node modules, loaded lazily so this file stays loadable on mobile. */
-function desktopNodeModules(): { fs: typeof import('fs'); childProcess: typeof import('child_process') } | null {
+function desktopNodeModules(): { fs: NodeFs; childProcess: NodeChildProcess } | null {
 	if (!Platform.isDesktopApp || !window.require) return null;
 	return {
 		fs: window.require('fs'),
@@ -209,7 +224,7 @@ export class KeyboardSwitcher {
 			}
 			node.childProcess.execFile(bin, args, { timeout: 2000 }, (error, stdout) => {
 				if (error) reject(error);
-				else resolve(String(stdout).trim());
+				else resolve(stdout.trim());
 			});
 		});
 	}

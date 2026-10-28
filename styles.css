@@ -1,22 +1,19 @@
-/* stylelint-disable selector-type-no-unknown -- mjx-* are MathJax's custom elements */
-
 /* Math is always laid out left-to-right. Without this, inline math on a
    Hebrew/Arabic line inherits the line's RTL direction: MathJax 4 lays its
    pieces out right-to-left and the browser mirrors brackets, so
    `t \in [t_1, t_2]` shows as `]t_2, t_1[ \ni t`. `isolate` also keeps the
-   surrounding RTL text from reordering around the formula. */
-mjx-container {
+   surrounding RTL text from reordering around the formula. `.MathJax` is the
+   class MathJax puts on every rendered expression's container. */
+.MathJax {
 	direction: ltr;
 	unicode-bidi: isolate;
 }
 
-/* RTL math text */
+/* RTL math text. The rule that switches everything inside back to LTR except
+   the text itself selects MathJax's custom elements, so it lives in the
+   stylesheet built in rtl.ts alongside the other MathJax-specific rules. */
 .mjx-rtl {
 	direction: rtl;
-}
-
-.mjx-rtl :where(:not(.mjx-rtl, mjx-mtext, mjx-c, mjx-utext)) {
-	direction: ltr;
 }
 
 /* Tolerant math rendering ($ ... $ with spaces / empty) */
@@ -24,14 +21,9 @@ mjx-container {
 	display: inline;
 }
 
-/* Hebrew/Arabic fonts for math text: the stack is provided per-settings via
-   the --lse-rtl-fonts variable, gated by a body class set by the plugin.
-   !important is required because MathJax sets font-family as an inline style
-   on mjx-utext elements, which no selector specificity can override. */
-body.lse-rtl-fonts mjx-container mjx-utext {
-	/* stylelint-disable-next-line declaration-no-important */
-	font-family: var(--lse-rtl-fonts) !important;
-}
+/* Hebrew/Arabic fonts for math text are applied by rtl.ts: MathJax sets
+   font-family as an inline style on the text elements, which a stylesheet
+   rule can only beat with !important. */
 
 /* ---------- \forminput text fields ---------- */
 
@@ -100,9 +92,7 @@ body.lse-rtl-fonts mjx-container mjx-utext {
 /* ---------- word meanings ---------- */
 
 .lse-meaning {
-	text-decoration: underline dotted var(--text-accent);
-	text-underline-offset: 3px;
-	text-decoration-thickness: 1px;
+	border-bottom: 1px dotted var(--text-accent);
 	cursor: help;
 	border-radius: 2px;
 }
