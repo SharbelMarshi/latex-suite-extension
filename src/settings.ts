@@ -9,6 +9,8 @@ export interface LatexSuiteExtensionSettings {
     disableOnIME: boolean;
     inlineDisplaystyle: boolean;
     autoPairDollar: boolean;
+    formFieldsEnabled: boolean;
+    annotationsEnabled: boolean;
     solveSeparator: string;
     solveAngleUnit: 'degrees' | 'radians';
     solveAngleNames: string[];
@@ -32,6 +34,8 @@ export const DEFAULT_SETTINGS: LatexSuiteExtensionSettings = {
     disableOnIME: true,
     inlineDisplaystyle: true,
     autoPairDollar: true,
+    formFieldsEnabled: true,
+    annotationsEnabled: true,
     solveSeparator: "\\quad \\to \\quad",
     solveAngleUnit: 'degrees',
     solveAngleNames: DEFAULT_ANGLE_NAMES,
@@ -116,6 +120,26 @@ export class LatexSuiteExtensionSettingTab extends PluginSettingTab {
                             el.createSpan({ text: "\" to \\solve — no Latex Suite configuration needed. Never fires after a letter or backslash (\\theta is safe), inside \\text{...}, or inside \\he{...}/\\ar{...}." });
                         }),
                         control: { type: 'toggle', key: 'builtinSnippets' },
+                    },
+                ],
+            },
+            {
+                type: 'group',
+                heading: 'Text fields & meanings',
+                items: [
+                    {
+                        name: 'Interactive text fields',
+                        desc: createFragment((el) => {
+                            el.createSpan({ text: "Render \"" });
+                            el.createEl("code", { text: "\\forminput[id=name, label={Full name}]" });
+                            el.createSpan({ text: "\" as a text box you can type into. Values are saved per note. Use the \"Insert text field\" command or the editor's right-click menu to add one." });
+                        }),
+                        control: { type: 'toggle', key: 'formFieldsEnabled' },
+                    },
+                    {
+                        name: 'Word meanings',
+                        desc: 'Select a word, right-click and choose "Add meaning" to attach a definition. Annotated words get a dotted underline and show a tooltip on hover or keyboard focus.',
+                        control: { type: 'toggle', key: 'annotationsEnabled' },
                     },
                 ],
             },
@@ -288,7 +312,11 @@ export class LatexSuiteExtensionSettingTab extends PluginSettingTab {
         switch (key) {
             case 'disableDecorations':
             case 'disableAtomicRanges':
+            case 'formFieldsEnabled':
                 this.plugin.remakeViewPlugin();
+                break;
+            case 'annotationsEnabled':
+                this.plugin.remakeAnnotationPlugin();
                 break;
             case 'rtlTextCommands':
                 this.refreshMathJaxSoon();

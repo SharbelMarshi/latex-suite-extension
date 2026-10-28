@@ -1,5 +1,15 @@
 /* stylelint-disable selector-type-no-unknown -- mjx-* are MathJax's custom elements */
 
+/* Math is always laid out left-to-right. Without this, inline math on a
+   Hebrew/Arabic line inherits the line's RTL direction: MathJax 4 lays its
+   pieces out right-to-left and the browser mirrors brackets, so
+   `t \in [t_1, t_2]` shows as `]t_2, t_1[ \ni t`. `isolate` also keeps the
+   surrounding RTL text from reordering around the formula. */
+mjx-container {
+	direction: ltr;
+	unicode-bidi: isolate;
+}
+
 /* RTL math text */
 .mjx-rtl {
 	direction: rtl;
@@ -21,4 +31,170 @@
 body.lse-rtl-fonts mjx-container mjx-utext {
 	/* stylelint-disable-next-line declaration-no-important */
 	font-family: var(--lse-rtl-fonts) !important;
+}
+
+/* ---------- \forminput text fields ---------- */
+
+.lse-field {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	vertical-align: baseline;
+	max-width: 100%;
+}
+
+.lse-field-label {
+	color: var(--text-muted);
+	font-size: var(--font-smaller);
+	white-space: nowrap;
+}
+
+.lse-field-input {
+	max-width: 100%;
+	padding: var(--size-4-1) var(--size-4-2);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background-color: var(--background-modifier-form-field);
+	color: var(--text-normal);
+	font-family: inherit;
+	font-size: var(--font-ui-small);
+	line-height: 1.4;
+	transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.lse-field-multiline {
+	vertical-align: top;
+	resize: vertical;
+}
+
+.lse-field-input::placeholder {
+	color: var(--text-faint);
+}
+
+.lse-field-input:hover {
+	border-color: var(--background-modifier-border-hover);
+}
+
+.lse-field-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.lse-field-required .lse-field-label::after {
+	content: "*";
+	margin-inline-start: 2px;
+	color: var(--text-error);
+}
+
+.lse-field-invalid .lse-field-input {
+	border-color: var(--text-error);
+}
+
+.lse-field-error:not(:empty) {
+	color: var(--text-error);
+	font-size: var(--font-smaller);
+	white-space: nowrap;
+}
+
+/* ---------- word meanings ---------- */
+
+.lse-meaning {
+	text-decoration: underline dotted var(--text-accent);
+	text-underline-offset: 3px;
+	text-decoration-thickness: 1px;
+	cursor: help;
+	border-radius: 2px;
+}
+
+.lse-meaning:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.lse-meaning:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 1px;
+}
+
+/* The popover is deliberately dark in both themes; the border keeps it
+   separated from the page in dark mode. pointer-events:none guarantees it can
+   never swallow a click or block text selection. */
+.lse-meaning-tooltip {
+	position: fixed;
+	z-index: var(--layer-tooltip, 60);
+	max-width: min(320px, 90vw);
+	padding: var(--size-4-2) var(--size-4-3);
+	border: 1px solid #ffffff26;
+	border-radius: var(--radius-m);
+	background-color: #1d2026;
+	color: #f2f3f5;
+	box-shadow: var(--shadow-s, 0 4px 14px #0006);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.45;
+	pointer-events: none;
+}
+
+.lse-meaning-word {
+	margin-bottom: 2px;
+	color: #ffffff;
+	font-weight: var(--font-semibold);
+}
+
+.lse-meaning-note {
+	margin-top: var(--size-4-1);
+	padding-top: var(--size-4-1);
+	border-top: 1px solid #ffffff1f;
+	color: #c6c9d1;
+	font-style: italic;
+}
+
+.lse-meaning-tooltip::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	width: 8px;
+	height: 8px;
+	margin-left: -4px;
+	transform: rotate(45deg);
+	background-color: #1d2026;
+}
+
+.lse-meaning-tooltip:not(.lse-meaning-tooltip-below)::after {
+	bottom: -5px;
+	border-right: 1px solid #ffffff26;
+	border-bottom: 1px solid #ffffff26;
+}
+
+.lse-meaning-tooltip-below::after {
+	top: -5px;
+	border-top: 1px solid #ffffff26;
+	border-left: 1px solid #ffffff26;
+}
+
+/* ---------- dialogs ---------- */
+
+.lse-modal-caption {
+	margin-bottom: var(--size-4-1);
+	color: var(--text-muted);
+	font-size: var(--font-smaller);
+}
+
+.lse-modal-preview {
+	display: block;
+	padding: var(--size-4-2);
+	border-radius: var(--radius-s);
+	background-color: var(--background-secondary);
+	color: var(--text-normal);
+	font-size: var(--font-smaller);
+	word-break: break-all;
+}
+
+.lse-modal-error:not(:empty) {
+	margin-top: var(--size-4-2);
+	color: var(--text-error);
+	font-size: var(--font-smaller);
+}
+
+.lse-modal-readonly {
+	color: var(--text-muted);
 }

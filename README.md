@@ -1,14 +1,16 @@
 # Latex Suite Extension
 
-An [Obsidian.md](https://obsidian.md/) plugin that extends [Latex Suite](https://github.com/artisticat1/obsidian-latex-suite) with seven features in one plugin:
+An [Obsidian.md](https://obsidian.md/) plugin that extends [Latex Suite](https://github.com/artisticat1/obsidian-latex-suite) with nine features in one plugin:
 
-1. **Flicker-free inline math**: no more flickering while typing inside $...$.
+1. **Flicker-free inline math**: no more flickering while typing inside `$...$`.
 2. **Tolerant math rendering**: $ x + y $ (spaces inside the dollar signs) and $ $ (empty math) render as math anyway, in both Live Preview and Reading view.
 3. **RTL math text**: mix right-to-left text into MathJax expressions with a single short command: \he{שלום}. Command names are configurable in the settings.
 4. **Automatic keyboard switching**: the system keyboard follows the cursor: your note language outside math, English inside $...$, and Hebrew/Arabic inside \he{...} / \ar{...}.
 5. **Inline math displaystyle**: inline $...$ math renders in \displaystyle (full-size fractions, sums, integrals) without writing it (Toggle it on/off in settings)
 6. **Solve**: type `\solve` after an equation chain and the last expression is evaluated and appended.
 7. **Built-in snippets**: in math, he → \he{|}, ar → \ar{|}, sol → \solve, with no Latex Suite configuration needed.
+8. **Interactive text fields**: `\forminput[...]` renders as a text box you can type into, with values saved per note.
+9. **Word meanings**: attach a definition to any selected text and see it in a tooltip on hover or keyboard focus.
 
 ## How it works
 
@@ -122,6 +124,59 @@ x^2+2x+2\solve      →  ... \quad \to \quad x_{1,2}=-1\pm i
 
 A negative discriminant yields the complex pair in `p\pm qi` form. Coefficients can be any evaluable math (`\frac{1}{2}x^2-2=0` works). Cubics and equations with two unknowns are refused with a notice.
 
+### Interactive text fields (`\forminput`)
+
+`\forminput[...]` renders as a text box you can type into, in both Live Preview and Reading view. It is deliberately **not** called `\input`, so LaTeX's own `\input{file.tex}` keeps working untouched.
+
+```latex
+\forminput[id=name, label={Full name}, placeholder={Enter your name}, width=240, required=true]
+```
+
+| Property | Meaning |
+|---|---|
+| `id` | Key the entered value is saved under. Give every field a unique id. |
+| `label` | Text shown before the box. |
+| `placeholder` | Hint shown while the box is empty. |
+| `default` | Value used until something is typed. |
+| `width` | Box width in pixels (40–1200). |
+| `required` | `true` shows a validation message while the field is empty. |
+| `multiline` | `true` renders a text area instead of a single-line box. |
+
+Values with commas or brackets go in braces: `label={Surname, given name}`. Unknown properties are ignored. A field with no `id` still renders and can be typed into, but its value is not saved — the id is the key it would be stored under.
+
+**Inserting one**: run **Insert text field** from the command palette or the editor's right-click menu. The dialog has a row per property, previews the command it will write, and inserts it at the cursor. An `id` is required — without one the value has nowhere to be saved.
+
+**Values**: typing in a field saves the value for that note (see [Where data is stored](#where-data-is-stored)). Reopening the note, switching to Reading view, or re-rendering brings the value back. While the cursor is inside the command the raw source is shown instead of the box, so the options stay editable — the same convention this plugin uses for tolerant math.
+
+**Required fields**: a required field that is empty gets a red border and a "… is required" message once you have interacted with it. **Check required text fields** reports all empty required fields in the note at once.
+
+**Export**: `\forminput` is not standard LaTeX, so there are two ways out.
+
+- **Copy note with text field values** puts a copy on the clipboard with every `\forminput[...]` replaced by its current value as ordinary text. Empty fields become `\underline{\hspace{...pt}}`, so a blank form still prints as a blank line.
+- To compile the command as-is, paste the preamble printed by `FORM_INPUT_LATEX_PREAMBLE` (in `src/forminput-core.ts`) into your document; it defines `\forminput` to typeset the label and default value.
+
+### Word meanings
+
+Attach a definition to any word or phrase and read it back in a tooltip.
+
+1. Select the text, right-click, choose **Add meaning** (or run **Add meaning to selection**).
+2. Fill in the meaning and, optionally, an example or note.
+3. If the phrase occurs more than once, the dialog offers **Apply to every occurrence**. Left off, only the occurrence you selected is annotated.
+
+Annotated text gets a subtle dotted underline. Hovering it — or focusing it with the keyboard, since each annotation is in the tab order — shows a small dark popover with the word, its meaning, and the note. The popover appears above the word and flips below it when there is not enough room; <kbd>Esc</kbd> closes it. It never captures pointer events, so it cannot interfere with selecting or editing text.
+
+Right-clicking an annotated word offers **Edit meaning** and **Remove meaning**. Adding and editing happen in the editor (Live Preview or Source); Reading view shows the underline and tooltip but has no right-click menu of its own.
+
+Meanings re-attach themselves to the text every time a note renders, using the annotated text, the surrounding context captured when the meaning was created, and the occurrence index — in that order. Editing elsewhere in the note, or adding another copy of the same word, keeps each meaning on its own occurrence. If the annotated text is deleted entirely the meaning is kept in storage but shown nowhere, rather than re-attaching to unrelated text.
+
+### Where data is stored
+
+Field values and meanings live in the plugin's own `data.json`, under a `documents` map keyed by the note's path, alongside the settings that were already there. **Nothing is written into your notes**: the source stays exactly what you typed, and exported LaTeX contains no plugin-specific markup for meanings.
+
+The alternatives were writing this data into note frontmatter or wrapping annotated text in a command in the source. Both make the data travel with the file, but both rewrite prose you did not ask to change — on every keystroke, in the case of field values — and both put non-standard markup into exported LaTeX. Out-of-band storage was chosen instead, with the plugin following the vault's rename and delete events so that moving or renaming a note keeps its data.
+
+The trade-off: data is tied to a vault. Copying a note to a different vault takes the text but not its field values or meanings.
+
 ## Latex Suite compatibility
 
 If you use Latex Suite's default snippets, modify these lines to avoid conflicts with the hidden braces:
@@ -139,4 +194,14 @@ Remove the `$1` from each `replacement`:
 	{trigger: "{", replacement: "{$0}", options: "mA"},
 	{trigger: "[", replacement: "[$0]", options: "mA"},
 ```
+
+## Development
+
+```bash
+npm install
+npm run build   # typecheck + bundle to main.js
+npm test        # unit tests
+```
+
+`npm test` bundles `tests/*.test.ts` into `test-build/` with esbuild and runs them with Node's built-in test runner. The parsing, anchoring and storage logic lives in `forminput-core.ts`, `annotations-core.ts` and `document-store.ts` — free of Obsidian and DOM imports precisely so it can be tested this way; the rendering layers around them (`forminput.ts`, `annotations.ts`) are verified by hand in Obsidian.
 
