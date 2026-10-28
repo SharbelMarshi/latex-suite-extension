@@ -109,6 +109,39 @@ export function isInsideMath(state: EditorState, pos = state.selection.main.head
 		const end = start + match[0].length;
 		if (pos > start && pos < end && shouldTolerantRender(match[1])) return true;
 	}
+
+	// While typing a LaTeX command the buffer is briefly `$ ... \<cursor>$`:
+	// typing `$` auto-pairs to `$|$`, then the first `\` leaves the closing `$`
+	// immediately preceded by a backslash, so the parser and the candidate regex
+	// above both read it as an escaped `\$` and miss the math — dropping the
+	// keyboard to the note language until the command is finished. Detect it: a
+	// backslash just before the cursor, a `$` just after, and an unescaped
+	// opening `$` earlier on the line.
+	if (state.sliceDoc(pos - 1, pos) === '\\'
+		&& state.sliceDoc(pos, pos + 1) === '$'
+		&& state.sliceDoc(pos + 1, pos + 2) !== '$') {
+		const prefix = line.text.slice(0, pos - line.from);
+		for (let i = 0; i < prefix.length; i++) {
+			if (prefix[i] === '\\') { i++; continue; } // skip the escaped character
+			if (prefix[i] === '$') return true;
+		}
+	}
+
+	// A blank line inside a multi-line $$...$$ block carries no math token and
+	// no inline `$...$`, so the checks above miss it: pressing Enter in the block
+	// would wrongly fall back to note text until the first character is typed.
+	// Decide such lines by the parity of unescaped `$$` delimiters before the
+	// line — an odd count means the cursor sits inside an open display block.
+	if (line.text.trim().length === 0) {
+		const before = state.sliceDoc(0, line.from);
+		let delimiters = 0;
+		for (let i = 0; i < before.length; i++) {
+			if (before[i] === '\\') { i++; continue; } // skip the escaped character
+			if (before[i] === '$' && before[i + 1] === '$') { delimiters++; i++; }
+		}
+		if (delimiters % 2 === 1) return true;
+	}
+
 	return false;
 }
 
